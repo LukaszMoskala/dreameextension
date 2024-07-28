@@ -72,6 +72,9 @@ type ValetudoConfigT struct {
 
 var vconf ValetudoConfigT
 
+var topicPrefix = "dreameextension"
+var haDiscoveryPrefix = "homeassistant"
+
 // DiscoveryT is a minimal configuration for homeassistant mqtt discovery.
 type DiscoveryT struct {
 	Availability struct {
@@ -141,9 +144,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("Could not parse valetudo config file: %v", err)
 		}
-		if vconf.Mqtt.Customizations.TopicPrefix == "" {
-			vconf.Mqtt.Customizations.TopicPrefix = "valetudo"
-		}
 		if vconf.Mqtt.Identity.Identifier == "" {
 			log.Fatalf("Mqtt.Identity.Identifier is required. Please set it in valetudo.")
 		}
@@ -151,31 +151,35 @@ func main() {
 			log.Fatalf("Please set friendlyName in valetudo.")
 		}
 	}()
-
+	if os.Getenv("DREAMEEXTENSION_TOPIC_PREFIX") != "" {
+		topicPrefix = os.Getenv("DREAMEEXTENSION_TOPIC_PREFIX")
+	}
+	if os.Getenv("HOMEASSISTANT_DISCOVERY_PREFIX") != "" {
+		haDiscoveryPrefix = os.Getenv("HOMEASSISTANT_DISCOVERY_PREFIX")
+	}
 	opts := mqtt.NewClientOptions().AddBroker(fmt.Sprintf("tcp://%s:%d", vconf.Mqtt.Connection.Host, vconf.Mqtt.Connection.Port)).SetClientID(fmt.Sprintf("dreameextension-%s", vconf.Mqtt.Identity.Identifier))
 	opts.SetKeepAlive(10 * time.Second)
 	opts.SetPingTimeout(4 * time.Second)
 	opts.SetAutoReconnect(true)
-	opts.SetWill(fmt.Sprintf("%s/%s/dreameextension/availability", vconf.Mqtt.Customizations.TopicPrefix, vconf.Mqtt.Identity.Identifier), "offline", 1, true)
+	opts.SetWill(fmt.Sprintf("%s/%s/availability", topicPrefix, vconf.Mqtt.Identity.Identifier), "offline", 1, true)
 	opts.SetOnConnectHandler(func(client mqtt.Client) {
-		t := client.Publish(fmt.Sprintf("%s/%s/dreameextension/availability", vconf.Mqtt.Customizations.TopicPrefix, vconf.Mqtt.Identity.Identifier), 1, true, "online")
+		t := client.Publish(fmt.Sprintf("%s/%s/availability", topicPrefix, vconf.Mqtt.Identity.Identifier), 1, true, "online")
 		t.Wait()
 		if t.Error() != nil {
 			log.Printf("Could not publish availability status: %v", t.Error())
 		} else {
 			log.Printf("MQTT connected")
-			client.Subscribe(fmt.Sprintf("%s/%s/dreameextension/play", vconf.Mqtt.Customizations.TopicPrefix, vconf.Mqtt.Identity.Identifier), 2, mqttSound)
+			client.Subscribe(fmt.Sprintf("%s/%s/play", topicPrefix, vconf.Mqtt.Identity.Identifier), 2, mqttSound)
 
 			d := &DiscoveryT{}
 			d.Availability.PayloadAvailable = "online"
 			d.Availability.PayloadNotAvailable = "offline"
-			d.Availability.Topic = fmt.Sprintf("%s/%s/dreameextension/availability", vconf.Mqtt.Customizations.TopicPrefix, vconf.Mqtt.Identity.Identifier)
+			d.Availability.Topic = fmt.Sprintf("%s/%s/availability", topicPrefix, vconf.Mqtt.Identity.Identifier)
 			d.Name = fmt.Sprintf("%s obstacle", vconf.Valetudo.Customizations.FriendlyName)
-			d.ImageTopic = fmt.Sprintf("%s/%s/dreameextension/obstacleImage", vconf.Mqtt.Customizations.TopicPrefix, vconf.Mqtt.Identity.Identifier)
+			d.ImageTopic = fmt.Sprintf("%s/%s/obstacleImage", topicPrefix, vconf.Mqtt.Identity.Identifier)
 			d.ContentType = "image/jpeg"
 			b, _ := json.Marshal(d)
-			//TODO: configurable discovery prefix
-			t = client.Publish("homeassistant/image/dreameextension-"+vconf.Mqtt.Identity.Identifier+"/config", 1, true, string(b))
+			t = client.Publish(haDiscoveryPrefix+"/image/dreameextension-"+vconf.Mqtt.Identity.Identifier+"/config", 1, true, string(b))
 			t.Wait()
 			if t.Error() != nil {
 				log.Printf("Could not publish discovery: %v", t.Error())
@@ -212,7 +216,7 @@ func main() {
 				if err != nil {
 					log.Println(err)
 				} else {
-					token := c.Publish(fmt.Sprintf("%s/%s/dreameextension/obstacleImage", vconf.Mqtt.Customizations.TopicPrefix, vconf.Mqtt.Identity.Identifier), 0, false, data)
+					token := c.Publish(fmt.Sprintf("%s/%s/obstacleImage", topicPrefix, vconf.Mqtt.Identity.Identifier), 1, false, data)
 					token.Wait()
 					if token.Error() != nil {
 						log.Printf("Failed to publish image to mqtt: %s", token.Error())

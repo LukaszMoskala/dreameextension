@@ -1,4 +1,4 @@
-# Dreame extensions (for valetudo)
+# Dreame extensions (for dreame robots running valetudo)
 
 This implements dreame-specific features that I think are cool. It's designed to work with homeassistant and valetudo.
 
@@ -19,14 +19,13 @@ Or if it doesn't, but it's possible to make it work with small changes.
    - Johnny Silverhand's voiceover lines are great for that
  - Play sound from mqtt
    - send zstd-compressed WAV file via mqtt
-   - `zstd < filename.wav | mosquitto_pub -d -h mqtt.server.ip -u valetudo -P password -t valetudo/identifier/dreameextension/play -s`
+   - `zstd < filename.wav | mosquitto_pub -d -h mqtt.server.ip -u valetudo -P password -t dreameextension/identifier/play -s`
  - No configuration needed (mqtt configuration is read from `/data/valetudo_config.json`)
 
 ## TODO
  - TLS certificate authentication to mqtt
  - Send command over mqtt to play local (local to robot) file
  - Send command over mqtt to play sound from URL
- - configurable autodiscovery prefix
  - Accept environment variables for things
    - `aplay` arguments
    - valetudo config location
