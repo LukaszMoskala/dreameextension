@@ -24,9 +24,6 @@ Or if it doesn't, but it's possible to make it work with small changes.
 
 ## TODO
  - TLS certificate authentication to mqtt
- - Provide pre-built binaries for all architectures supported by valetudo
-    - aarch64
-    - armv7
  - Send command over mqtt to play local (local to robot) file
  - Send command over mqtt to play sound from URL
  - configurable autodiscovery prefix
@@ -46,16 +43,11 @@ software, broken robots or anything. Use at your own risk.
 
 ## Installation
 
-Basically it comes down to: build, copy to robot, run.
-
-After you enter cloned repo and installed go:
-```shell
-make #compile
-ssh root@vacuum.ip 'mkdir -p /data/dreameextension/obstacleVoices ; cat - > /data/dreameextension/dreameextension; chmod +x /data/dreameextension/dreameextension' < dreameextension_linux_arm64 #copy to robot
-```
+Download correct file from releases section, copy it to robot to `/data/dreameextension/dreameextension`
 
 Now, ssh to your robot and run:
 ```shell
+chmod +x /data/dreameextension/dreameextension
 nohup /data/dreameextension/dreameextension &
 ```
 
@@ -69,3 +61,13 @@ fi
 At the end of file.
 
 To stop, just run `killall dreameextension`.
+
+# Compilling
+If you want to build it yourself, you need to install `go`.
+
+After that, it's as simple as running:
+```shell
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o dreameextension_linux_arm64
+CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -o dreameextension_linux_arm
+```
+Depending on architecture of your robot.
