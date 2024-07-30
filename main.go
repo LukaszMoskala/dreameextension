@@ -195,9 +195,28 @@ func main() {
 	}
 
 	c := mqtt.NewClient(opts)
-	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("Could not connect to mqtt server: %v", token.Error())
+
+	//We may start before robot has working network, so we may need multiple attempts to connect
+	//After first failure, we wait 1 second. After second, 2 seconds. After third, 4 seconds etc...
+	//Until 20 attempts, after which we just stop.
+	//If we connect at least once, autoReconnect will handle this for us in the future, and we don't
+	//need to worry about it.
+	connectAttempt := 0
+	for {
+		connectAttempt++
+		token := c.Connect()
+		token.Wait()
+		if token.Error() != nil {
+			log.Printf("Could not connect to mqtt server(attempt %d): %v", connectAttempt, token.Error())
+			if connectAttempt >= 20 {
+				log.Fatalf("Bailing out")
+			}
+			time.Sleep(time.Second * time.Duration(connectAttempt))
+		} else {
+			break
+		}
 	}
+
 	w := watcher.New()
 	w.SetMaxEvents(1)
 	w.FilterOps(watcher.Create)
