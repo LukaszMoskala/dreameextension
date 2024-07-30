@@ -30,6 +30,9 @@ Or if it doesn't, but it's possible to make it work with small changes.
    - `aplay` arguments
    - valetudo config location
    - override options from valetudo config with env vars
+ - Dreame plays sound using `ogg123` (found in `/ava/script/mediad_script.sh`). Maybe switching to ogg to save
+   space and transfer when sending sound over mqtt is a good idea, while also keeping ability to play WAV files
+   with aplay.
 
 I may or may not be motivated enough to do anything from this list. If you are interested in some of said features,
 please open issue for that. And preferably also a pull request :)
